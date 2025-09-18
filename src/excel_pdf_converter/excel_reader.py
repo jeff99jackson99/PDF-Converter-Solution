@@ -37,28 +37,89 @@ class ExcelReader:
         """
         return self.workbook.sheet_names
     
-    def read_sheet(self, sheet_name: str, header_row: Optional[int] = 0) -> pd.DataFrame:
+    def read_sheet(self, sheet_name: str, header_row: Optional[int] = None) -> pd.DataFrame:
         """Read a specific sheet from the workbook.
         
         Args:
             sheet_name: Name of the sheet to read
-            header_row: Row number to use as header (0-indexed)
+            header_row: Row number to use as header (0-indexed). If None, auto-detect.
             
         Returns:
             DataFrame containing the sheet data
         """
         try:
+            # First, read without headers to inspect the structure
+            df_raw = pd.read_excel(
+                self.file_path,
+                sheet_name=sheet_name,
+                header=None,
+                engine='openpyxl'
+            )
+            
+            # Auto-detect header row if not specified
+            if header_row is None:
+                header_row = self._find_header_row(df_raw)
+            
+            # Read with proper headers
             df = pd.read_excel(
                 self.file_path,
                 sheet_name=sheet_name,
                 header=header_row,
                 engine='openpyxl'
             )
+            
+            # Clean up column names
+            df = self._clean_dataframe_headers(df)
+            
             logger.info(f"Successfully read sheet: {sheet_name}")
             return df
         except Exception as e:
             logger.error(f"Failed to read sheet {sheet_name}: {e}")
             raise
+    
+    def _find_header_row(self, df: pd.DataFrame) -> int:
+        """Find the best row to use as headers by looking for the row with the most text content.
+        
+        Args:
+            df: Raw DataFrame without headers
+            
+        Returns:
+            Row index to use as header
+        """
+        best_row = 0
+        max_text_cells = 0
+        
+        # Check first 10 rows
+        for i in range(min(10, len(df))):
+            row = df.iloc[i]
+            text_cells = sum(1 for cell in row if pd.notna(cell) and str(cell).strip())
+            
+            if text_cells > max_text_cells:
+                max_text_cells = text_cells
+                best_row = i
+        
+        return best_row
+    
+    def _clean_dataframe_headers(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Clean up DataFrame column headers and remove empty rows/columns.
+        
+        Args:
+            df: Input DataFrame
+            
+        Returns:
+            Cleaned DataFrame
+        """
+        # Clean column names
+        df.columns = [str(col).strip() if pd.notna(col) else f"Column_{i}" 
+                     for i, col in enumerate(df.columns)]
+        
+        # Remove completely empty rows and columns
+        df = df.dropna(how='all').dropna(axis=1, how='all')
+        
+        # Reset index
+        df = df.reset_index(drop=True)
+        
+        return df
     
     def read_multiple_sheets(self, sheet_names: List[str]) -> Dict[str, pd.DataFrame]:
         """Read multiple sheets at once.

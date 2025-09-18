@@ -111,13 +111,41 @@ class PDFGenerator:
         # Convert all values to strings for consistent formatting
         df_clean = df_clean.astype(str)
         
-        # Limit very long text
+        # Clean up cell values
         for col in df_clean.columns:
-            df_clean[col] = df_clean[col].apply(
-                lambda x: x[:50] + '...' if len(str(x)) > 50 else x
-            )
+            df_clean[col] = df_clean[col].apply(self._clean_cell_value)
         
         return df_clean
+    
+    def _clean_cell_value(self, value: str) -> str:
+        """Clean individual cell values for better PDF display.
+        
+        Args:
+            value: Cell value as string
+            
+        Returns:
+            Cleaned cell value
+        """
+        if not value or value == 'nan':
+            return ''
+        
+        # Remove extra whitespace
+        value = str(value).strip()
+        
+        # Handle numbers with proper formatting
+        try:
+            # Try to format as number if it's numeric
+            if '.' in value:
+                num = float(value)
+                if num == int(num):
+                    return str(int(num))
+                return f"{num:.2f}"
+            else:
+                num = int(value)
+                return str(num)
+        except (ValueError, TypeError):
+            # Not a number, return as string with length limit
+            return value[:40] + '...' if len(value) > 40 else value
     
     def _create_table_from_dataframe(self, df: pd.DataFrame, max_rows: int = 30) -> Table:
         """Create a ReportLab Table from a pandas DataFrame.
@@ -152,6 +180,9 @@ class PDFGenerator:
         # Create table
         table = Table(table_data, repeatRows=1)
         
+        # Calculate column widths based on content
+        col_widths = self._calculate_column_widths(table_data)
+        
         # Style the table
         table_style = TableStyle([
             # Header row styling
@@ -159,11 +190,11 @@ class PDFGenerator:
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('FONTSIZE', (0, 0), (-1, 0), 8),
             
             # Data rows styling
             ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('FONTSIZE', (0, 1), (-1, -1), 7),
             
             # Borders
             ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
@@ -171,10 +202,52 @@ class PDFGenerator:
             
             # Alternating row colors
             ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
+            
+            # Wrap text in cells
+            ('WORDWRAP', (0, 0), (-1, -1), 'CJK'),
         ])
         
         table.setStyle(table_style)
+        
+        # Apply column widths if calculated
+        if col_widths:
+            table._colWidths = col_widths
+        
         return table
+    
+    def _calculate_column_widths(self, table_data: List[List[str]]) -> List[float]:
+        """Calculate appropriate column widths based on content.
+        
+        Args:
+            table_data: Table data as list of rows
+            
+        Returns:
+            List of column widths in points
+        """
+        if not table_data:
+            return []
+        
+        num_cols = len(table_data[0])
+        max_widths = [0] * num_cols
+        
+        # Find maximum width for each column
+        for row in table_data:
+            for i, cell in enumerate(row):
+                if i < num_cols:
+                    cell_width = len(str(cell)) * 6  # Approximate character width
+                    max_widths[i] = max(max_widths[i], cell_width)
+        
+        # Set reasonable limits
+        min_width = 60  # Minimum column width
+        max_width = 150  # Maximum column width
+        
+        # Apply limits and convert to points
+        col_widths = []
+        for width in max_widths:
+            width = max(min_width, min(width, max_width))
+            col_widths.append(width)
+        
+        return col_widths
     
     def add_sheet_data(self, sheet_name: str, df: pd.DataFrame, 
                       max_rows: int = 30, max_cols: int = 10) -> None:
