@@ -1,7 +1,7 @@
 """PDF generator for converting Excel data to professional PDF format."""
 
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter, A4
+from reportlab.lib.pagesizes import letter, A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
@@ -18,22 +18,22 @@ logger = logging.getLogger(__name__)
 class PDFGenerator:
     """Generates professional PDF documents from Excel data."""
     
-    def __init__(self, output_path: str, page_size: Tuple[int, int] = letter) -> None:
+    def __init__(self, output_path: str, page_size: Tuple[int, int] = None) -> None:
         """Initialize PDF generator.
         
         Args:
             output_path: Path where PDF will be saved
-            page_size: Page size tuple (width, height) in points
+            page_size: Page size tuple (width, height) in points. If None, auto-detect based on content.
         """
         self.output_path = output_path
-        self.page_size = page_size
+        self.page_size = page_size or landscape(letter)  # Default to landscape for better table display
         self.doc = SimpleDocTemplate(
             output_path,
-            pagesize=page_size,
-            rightMargin=0.5*inch,
-            leftMargin=0.5*inch,
+            pagesize=self.page_size,
+            rightMargin=0.3*inch,  # Smaller margins for more space
+            leftMargin=0.3*inch,
             topMargin=0.5*inch,
-            bottomMargin=0.5*inch
+            bottomMargin=0.3*inch
         )
         self.styles = getSampleStyleSheet()
         self._setup_custom_styles()
@@ -147,7 +147,7 @@ class PDFGenerator:
             # Not a number, return as string with length limit
             return value[:40] + '...' if len(value) > 40 else value
     
-    def _create_table_from_dataframe(self, df: pd.DataFrame, max_rows: int = 30) -> Table:
+    def _create_table_from_dataframe(self, df: pd.DataFrame, max_rows: int = 100) -> Table:
         """Create a ReportLab Table from a pandas DataFrame.
         
         Args:
@@ -159,10 +159,14 @@ class PDFGenerator:
         """
         df_clean = self._clean_dataframe(df)
         
+        # Log original size
+        original_rows = len(df_clean)
+        logger.info(f"Creating table from {original_rows} rows, {len(df_clean.columns)} columns")
+        
         # Limit rows if DataFrame is too large
         if len(df_clean) > max_rows:
             df_clean = df_clean.head(max_rows)
-            logger.warning(f"DataFrame truncated to {max_rows} rows for PDF display")
+            logger.warning(f"DataFrame truncated to {max_rows} rows for PDF display (was {original_rows} rows)")
         
         # Prepare table data
         table_data = []
@@ -177,7 +181,7 @@ class PDFGenerator:
                 row_data = [str(cell) for cell in row.values]
                 table_data.append(row_data)
         
-        # Create table
+        # Create table with repeatRows for headers
         table = Table(table_data, repeatRows=1)
         
         # Calculate column widths based on content
@@ -237,9 +241,9 @@ class PDFGenerator:
                     cell_width = len(str(cell)) * 6  # Approximate character width
                     max_widths[i] = max(max_widths[i], cell_width)
         
-        # Set reasonable limits
-        min_width = 60  # Minimum column width
-        max_width = 150  # Maximum column width
+        # Set reasonable limits for landscape mode
+        min_width = 80  # Minimum column width
+        max_width = 200  # Maximum column width
         
         # Apply limits and convert to points
         col_widths = []

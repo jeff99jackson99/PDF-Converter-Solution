@@ -60,18 +60,24 @@ class ExcelReader:
             if header_row is None:
                 header_row = self._find_header_row(df_raw)
             
-            # Read with proper headers
+            # Read with proper headers - read ALL data
             df = pd.read_excel(
                 self.file_path,
                 sheet_name=sheet_name,
                 header=header_row,
-                engine='openpyxl'
+                engine='openpyxl',
+                # Don't skip any rows or columns
+                skiprows=None,
+                skipcols=None,
+                # Read all data
+                nrows=None,
+                usecols=None
             )
             
             # Clean up column names
             df = self._clean_dataframe_headers(df)
             
-            logger.info(f"Successfully read sheet: {sheet_name}")
+            logger.info(f"Successfully read sheet: {sheet_name} ({len(df)} rows, {len(df.columns)} columns)")
             return df
         except Exception as e:
             logger.error(f"Failed to read sheet {sheet_name}: {e}")

@@ -160,8 +160,8 @@ class ExcelToPDFConverter:
         return self.convert_to_pdf(
             pdf_filename=pdf_filename,
             include_sheet_summaries=True,
-            max_rows_per_sheet=25,
-            max_cols_per_sheet=8
+            max_rows_per_sheet=100,  # Increased from 25
+            max_cols_per_sheet=20    # Increased from 8
         )
     
     def get_available_sheets(self) -> List[str]:
