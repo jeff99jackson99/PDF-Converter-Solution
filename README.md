@@ -53,8 +53,11 @@ pip install -e .
 
 ## 🖥️ Usage
 
-### Web Interface (Recommended)
+### Web Interface (Live Demo)
 
+🚀 **[Try the Live Demo](https://pdf-converter-solution-jeff99jackson99.streamlit.app/)**
+
+**Local Development:**
 1. **Start the application:**
    ```bash
    make dev
