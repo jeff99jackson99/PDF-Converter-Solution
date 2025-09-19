@@ -60,7 +60,7 @@ class ExcelReader:
             if header_row is None:
                 header_row = self._find_header_row(df_raw)
             
-            # Read with proper headers - read ALL data
+            # Read with proper headers - read ALL data including calculated values
             df = pd.read_excel(
                 self.file_path,
                 sheet_name=sheet_name,

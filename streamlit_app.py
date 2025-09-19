@@ -90,18 +90,18 @@ def main():
         st.subheader("Display Settings")
         max_rows = st.slider(
             "Maximum rows per sheet",
-            min_value=25,
-            max_value=200,
-            value=100,
-            help="Limit the number of rows displayed to keep PDF manageable"
+            min_value=50,
+            max_value=1000,
+            value=500,
+            help="Capture all your Excel data - set high to include everything"
         )
         
         max_cols = st.slider(
             "Maximum columns per sheet",
-            min_value=5,
-            max_value=30,
-            value=20,
-            help="Limit the number of columns displayed"
+            min_value=10,
+            max_value=50,
+            value=30,
+            help="Capture all columns from your Excel sheets"
         )
         
         include_summaries = st.checkbox(

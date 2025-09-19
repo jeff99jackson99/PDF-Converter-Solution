@@ -147,7 +147,7 @@ class PDFGenerator:
             # Not a number, return as string with length limit
             return value[:40] + '...' if len(value) > 40 else value
     
-    def _create_table_from_dataframe(self, df: pd.DataFrame, max_rows: int = 100) -> Table:
+    def _create_table_from_dataframe(self, df: pd.DataFrame, max_rows: int = 1000) -> Table:
         """Create a ReportLab Table from a pandas DataFrame.
         
         Args:
@@ -163,10 +163,13 @@ class PDFGenerator:
         original_rows = len(df_clean)
         logger.info(f"Creating table from {original_rows} rows, {len(df_clean.columns)} columns")
         
-        # Limit rows if DataFrame is too large
+        # Only limit rows if absolutely necessary for PDF generation
         if len(df_clean) > max_rows:
+            logger.warning(f"Large dataset: {original_rows} rows. Consider increasing max_rows if data is truncated.")
             df_clean = df_clean.head(max_rows)
             logger.warning(f"DataFrame truncated to {max_rows} rows for PDF display (was {original_rows} rows)")
+        else:
+            logger.info(f"Including all {original_rows} rows in PDF")
         
         # Prepare table data
         table_data = []
@@ -254,7 +257,7 @@ class PDFGenerator:
         return col_widths
     
     def add_sheet_data(self, sheet_name: str, df: pd.DataFrame, 
-                      max_rows: int = 30, max_cols: int = 10) -> None:
+                      max_rows: int = 1000, max_cols: int = 50) -> None:
         """Add a sheet's data to the PDF.
         
         Args:
@@ -274,21 +277,41 @@ class PDFGenerator:
             self.story.append(Spacer(1, 0.2*inch))
             return
         
-        # Limit columns if necessary
-        if len(df.columns) > max_cols:
-            df = df.iloc[:, :max_cols]
-            logger.warning(f"DataFrame truncated to {max_cols} columns for PDF display")
+        # Log original dimensions
+        original_rows, original_cols = df.shape
+        logger.info(f"Processing sheet '{sheet_name}': {original_rows} rows × {original_cols} columns")
         
-        # Create and add table
-        try:
-            table = self._create_table_from_dataframe(df, max_rows)
-            self.story.append(table)
-            self.story.append(Spacer(1, 0.2*inch))
-        except Exception as e:
-            logger.error(f"Error creating table for sheet {sheet_name}: {e}")
-            error_msg = Paragraph(f"Error displaying data for {sheet_name}: {str(e)}", 
-                                self.styles['Normal'])
-            self.story.append(error_msg)
+        # Handle very wide sheets by splitting columns if necessary
+        if len(df.columns) > max_cols:
+            logger.warning(f"Sheet has {original_cols} columns, splitting for display")
+            # Split into chunks of max_cols
+            col_chunks = [df.iloc[:, i:i+max_cols] for i in range(0, len(df.columns), max_cols)]
+            
+            for chunk_idx, df_chunk in enumerate(col_chunks):
+                chunk_header = Paragraph(f"<b>{sheet_name} - Columns {chunk_idx*max_cols+1} to {min((chunk_idx+1)*max_cols, original_cols)}</b>", 
+                                       self.styles['Heading3'])
+                self.story.append(chunk_header)
+                
+                try:
+                    table = self._create_table_from_dataframe(df_chunk, max_rows)
+                    self.story.append(table)
+                    self.story.append(Spacer(1, 0.2*inch))
+                except Exception as e:
+                    logger.error(f"Error creating table chunk {chunk_idx} for sheet {sheet_name}: {e}")
+                    error_msg = Paragraph(f"Error displaying data chunk {chunk_idx} for {sheet_name}: {str(e)}", 
+                                        self.styles['Normal'])
+                    self.story.append(error_msg)
+        else:
+            # Create and add single table
+            try:
+                table = self._create_table_from_dataframe(df, max_rows)
+                self.story.append(table)
+                self.story.append(Spacer(1, 0.2*inch))
+            except Exception as e:
+                logger.error(f"Error creating table for sheet {sheet_name}: {e}")
+                error_msg = Paragraph(f"Error displaying data for {sheet_name}: {str(e)}", 
+                                    self.styles['Normal'])
+                self.story.append(error_msg)
     
     def add_sheet_summary(self, sheet_name: str, df: pd.DataFrame) -> None:
         """Add a summary of the sheet data.

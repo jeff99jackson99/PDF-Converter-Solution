@@ -70,8 +70,8 @@ class ExcelToPDFConverter:
     
     def convert_to_pdf(self, pdf_filename: Optional[str] = None, 
                       include_sheet_summaries: bool = True,
-                      max_rows_per_sheet: int = 30,
-                      max_cols_per_sheet: int = 10) -> str:
+                      max_rows_per_sheet: int = 1000,
+                      max_cols_per_sheet: int = 50) -> str:
         """Convert loaded sheets to PDF.
         
         Args:
@@ -160,8 +160,8 @@ class ExcelToPDFConverter:
         return self.convert_to_pdf(
             pdf_filename=pdf_filename,
             include_sheet_summaries=True,
-            max_rows_per_sheet=100,  # Increased from 25
-            max_cols_per_sheet=20    # Increased from 8
+            max_rows_per_sheet=1000,  # No practical limit
+            max_cols_per_sheet=50     # No practical limit
         )
     
     def get_available_sheets(self) -> List[str]:
