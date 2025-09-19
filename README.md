@@ -53,11 +53,23 @@ pip install -e .
 
 ## 🖥️ Usage
 
+### Quick PDF Generation
+
+🚀 **Generate PDF instantly from your proforma file:**
+
+```bash
+# Generate PDF from the project Excel file
+make generate-pdf
+
+# Or use the simple script
+python generate_pdf.py
+```
+
 ### Web Interface (Live Demo)
 
 🚀 **[Try the Live Demo](https://pdf-converter-solution-jeff99jackson99.streamlit.app/)**
 
-**Local Development:**
+**Local Web App:**
 1. **Start the application:**
    ```bash
    make dev
@@ -67,10 +79,9 @@ pip install -e .
 
 2. **Open your browser:**
    - Navigate to `http://localhost:8501`
-   - Upload your Excel file
    - Configure settings
    - Click "Generate PDF"
-   - Download your PDF
+   - Download your professional PDF
 
 ### Command Line Interface
 

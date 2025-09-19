@@ -16,8 +16,9 @@ help:
 	@echo "  lint           Run linting checks"
 	@echo "  fmt            Format code"
 	@echo ""
-	@echo "Conversion:"
-	@echo "  convert        Convert Excel file to PDF (usage: make convert FILE=path/to/file.xlsx)"
+	@echo "PDF Generation:"
+	@echo "  generate-pdf   Generate PDF from project Excel file (Pro Forma (4 Products).xlsx)"
+	@echo "  convert        Convert any Excel file to PDF (usage: make convert FILE=path/to/file.xlsx)"
 	@echo "  convert-proforma Convert proforma sheets only (usage: make convert-proforma FILE=path/to/file.xlsx)"
 	@echo ""
 	@echo "Docker:"
@@ -57,7 +58,12 @@ fmt:
 	black src/ streamlit_app.py tests/
 	ruff check --fix src/ streamlit_app.py tests/
 
-# Convert Excel to PDF
+# Generate PDF from project Excel file
+generate-pdf:
+	@echo "Generating PDF from Pro Forma (4 Products).xlsx..."
+	python generate_pdf.py
+
+# Convert any Excel file to PDF
 convert:
 	@if [ -z "$(FILE)" ]; then \
 		echo "Error: Please specify FILE=path/to/your/file.xlsx"; \
@@ -66,7 +72,7 @@ convert:
 	@echo "Converting $(FILE) to PDF..."
 	python -m excel_pdf_converter "$(FILE)" -v
 
-# Convert proforma sheets only
+# Convert proforma sheets only from any file
 convert-proforma:
 	@if [ -z "$(FILE)" ]; then \
 		echo "Error: Please specify FILE=path/to/your/file.xlsx"; \
@@ -112,10 +118,10 @@ clean:
 quick-start: setup
 	@echo ""
 	@echo "🚀 Quick Start Guide:"
-	@echo "1. Start the web app: make dev"
-	@echo "2. Open browser: http://localhost:8501"
-	@echo "3. Upload your Excel file and convert to PDF"
+	@echo "1. Generate PDF from project file: make generate-pdf"
+	@echo "2. Or start the web app: make dev"
+	@echo "3. Open browser: http://localhost:8501"
 	@echo ""
-	@echo "Or use command line:"
-	@echo "make convert FILE=path/to/your/file.xlsx"
-	@echo "make convert-proforma FILE=path/to/your/file.xlsx"
+	@echo "Command line options:"
+	@echo "make generate-pdf                           # Use project Excel file"
+	@echo "make convert FILE=path/to/your/file.xlsx    # Use any Excel file"
